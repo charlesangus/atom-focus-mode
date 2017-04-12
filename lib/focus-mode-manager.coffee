@@ -6,6 +6,7 @@ FocusCursorMode = require './focus-cursor-mode'
 FocusScopeMode = require './focus-scope-mode'
 FocusShadowMode = require './focus-shadow-mode'
 FocusSingleLineMode = require './focus-single-line-mode'
+FocusSentenceMode = require './focus-sentence-mode'
 TypeWriterScrollingMode = require './type-writer-scrolling-mode'
 
 class FocusModeManager extends FocusModeBase
@@ -17,6 +18,7 @@ class FocusModeManager extends FocusModeBase
         @focusCursorMode = new FocusCursorMode()
         @focusShadowMode = new FocusShadowMode()
         @focusSingleLineMode = new FocusSingleLineMode()
+        @focusSentenceMode = new FocusSentenceMode()
         @focusModeSettings = new FocusModeSettings()
         @typeWriterScrollingMode = new TypeWriterScrollingMode()
         @usersScrollPastEndSetting = atom.config.get('editor.scrollPastEnd')
@@ -26,7 +28,8 @@ class FocusModeManager extends FocusModeBase
             scopeFocus: "scopeFocus",
             cursorFocus: "cursorFocus",
             shadowFocus: "shadowFocus",
-            singleLineFocus: "singleLineFocus"
+            singleLineFocus: "singleLineFocus",
+            "sentenceFocus": "sentenceFocus"
         }
 
 
@@ -67,6 +70,9 @@ class FocusModeManager extends FocusModeBase
         if @focusScopeMode.isActivated
             @focusScopeMode.scopeModeOnCursorMove(cursor)
 
+        if @focusSentenceMode.isActivated
+            @focusSentenceMode.onCursorMove(cursor)
+
         if @typeWriterScrollingMode.useTypeWriterScrolling and not @typeWriterScrollingMode.mouseTextSelectionInProgress
             @typeWriterScrollingMode.centerCursorRow(cursor)
 
@@ -80,6 +86,9 @@ class FocusModeManager extends FocusModeBase
 
         if @focusScopeMode.isActivated
             @focusScopeMode.scopeModeOnCursorMove(obj.cursor)
+
+        if @focusSentenceMode.isActivated
+            @focusSentenceMode.onCursorMove(obj.cursor)
 
         if @typeWriterScrollingMode.useTypeWriterScrolling and not @typeWriterScrollingMode.mouseTextSelectionInProgress
             @typeWriterScrollingMode.centerCursorRow(obj.cursor)
@@ -99,21 +108,27 @@ class FocusModeManager extends FocusModeBase
                 @focusShadowMode.on()
             when @focusModes.singleLineFocus
                 @focusSingleLineMode.on()
+            when @focusModes.sentenceFocus
+                @focusSentenceMode.on()
 
 
     deActivateFocusMode: (mode) =>
         switch mode
             when @focusModes.scopeFocus
                 @focusScopeMode.off()
-                @cursorEventSubscribers.dispose() if @cursorEventSubscribers
+                # @cursorEventSubscribers.dispose() if @cursorEventSubscribers
             when @focusModes.cursorFocus
                 @focusCursorMode.off()
-                @cursorEventSubscribers.dispose() if @cursorEventSubscribers
+                # @cursorEventSubscribers.dispose() if @cursorEventSubscribers
             when @focusModes.shadowFocus
                 @focusShadowMode.off()
-                @cursorEventSubscribers.dispose() if @cursorEventSubscribers
+                # @cursorEventSubscribers.dispose() if @cursorEventSubscribers
             when @focusModes.singleLineFocus
                 @focusSingleLineMode.off()
+            when @focusModes.sentenceFocus
+                @focusSentenceMode.off()
+
+        @cursorEventSubscribers.dispose() if @cursorEventSubscribers
 
 
     focusModeIsActivated: ()=>
@@ -125,6 +140,7 @@ class FocusModeManager extends FocusModeBase
         @deActivateFocusMode(@focusModes.cursorFocus) if @focusCursorMode.isActivated
         @deActivateFocusMode(@focusModes.shadowFocus) if @focusShadowMode.isActivated
         @deActivateFocusMode(@focusModes.singleLineFocus) if @focusSingleLineMode.isActivated
+        @deActivateFocusMode(@focusModes.sentenceFocus) if @focusSentenceMode.isActivated
 
 
     screenSetup: ()=>
@@ -148,12 +164,14 @@ class FocusModeManager extends FocusModeBase
                 fileType + " is not currently supported by Scope Focus mode." +
                 " All other focus modes will work with this file.");
 
+
     toggleCursorFocusMode: =>
         if @focusCursorMode.isActivated
             @exitFocusMode()
         else
             @activateFocusMode(@focusModes.cursorFocus)
             @screenSetup()
+
 
     toggleFocusShadowMode: =>
         if @focusShadowMode.isActivated
@@ -162,12 +180,30 @@ class FocusModeManager extends FocusModeBase
             @activateFocusMode(@focusModes.shadowFocus)
             @screenSetup()
 
+
     toggleFocusSingleLineMode: =>
         if @focusSingleLineMode.isActivated
             @exitFocusMode()
         else
             @activateFocusMode(@focusModes.singleLineFocus)
             @screenSetup()
+
+
+    toggleFocusSentenceMode: =>
+        console.log("toggleFocusSentenceMode - @focusSentenceMode.isActivated = ", @focusSentenceMode.isActivated)
+        if @focusSentenceMode.isActivated
+            console.log("toggleFocusSentenceMode - exitFocusMode()")
+            @exitFocusMode()
+        else
+            fileType = @getActiveEditorFileType()
+            if fileType is 'txt' or fileType is 'md'
+                console.log("toggleFocusSentenceMode - activateFocusMode()")
+                @activateFocusMode(@focusModes.sentenceFocus)
+                @screenSetup()
+            else
+                @getAtomNotificationsInstance().addInfo("Sorry, file type " +
+                fileType + " is not supported by Sentence Focus mode." +
+                " All other focus modes will work with this file.");
 
 
     exitFocusMode: =>
