@@ -47,7 +47,7 @@ class FocusSentenceMode extends FocusModeBase
         bufferRange = @getSentenceModeBufferRange(cursorPosition, editor)
         console.log("createSentenceModeMarker mode buffer range is ", bufferRange)
         marker = editor.markBufferRange(bufferRange, editor)
-        editor.decorateMarker(marker, type: 'highlight', class: "highlight-sentence")
+        editor.decorateMarker(marker, {type: 'highlight', class: "highlight-sentence"})
         # editor.decorateMarker(marker, type: 'line', class: @focusLineCssClass)
 
         return marker
