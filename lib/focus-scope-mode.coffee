@@ -50,6 +50,9 @@ class FocusScopeMode extends FocusModeBase
     isClosingCurlyLine: (lineText) ->
         return /^\s*}.*/.test(lineText)
 
+    isMdHeaderLine: (lineText) ->
+        return /^#.*$/.test(lineText)
+
     lineContainsClosingCurly: (lineText) ->
         return /^.*}.*/.test(lineText)
 
@@ -107,6 +110,9 @@ class FocusScopeMode extends FocusModeBase
         if fileType is "py" and @isDecoratorLine(cursorRowText)
             return rowIndex
 
+        if fileType is "md" and @isMdHeaderLine(cursorRowText)
+            return rowIndex
+
         # start traversing up file looking for the cursor line's
         # enclosing scope (method or class start line)
         while rowIndex > 0
@@ -129,6 +135,10 @@ class FocusScopeMode extends FocusModeBase
 
             else if fileType is "js" and @lineContainsClosingCurly(rowText)
                 closingCurlyRowIndents.push(rowIndent)
+            else if fileType is "md"
+                if @isMdHeaderLine(rowText)
+                    matchedBufferRowNumber = rowIndex
+                    break
 
         return matchedBufferRowNumber
 
@@ -158,6 +168,10 @@ class FocusScopeMode extends FocusModeBase
                     # +1 as buffer range end row isn't included in range and we also want it included/decorated
                     bufferScopeEndRow = rowIndex + 1
                     break
+            else if fileType is "md"
+                if @isMdHeaderLine(rowText)
+                    bufferScopeEndRow = rowIndex
+                    break
 
         return bufferScopeEndRow
 
@@ -166,7 +180,7 @@ class FocusScopeMode extends FocusModeBase
         fileType = @getFileTypeForEditor(editor)
         startRow = 0
         endRow = editor.getLineCount() - 1
-        if fileType in ['md', 'txt']
+        if fileType is 'txt'
             paragraphRange = editor.getCurrentParagraphBufferRange()
             if paragraphRange
                 startRow = paragraphRange.start.row
